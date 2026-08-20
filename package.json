@@ -1,0 +1,54 @@
+{
+	"name": "pi-kimi-web-tools",
+	"version": "0.1.0",
+	"type": "module",
+	"dependencies": {
+		"@mozilla/readability": "^0.6.0",
+		"linkedom": "^0.18.13"
+	},
+	"private": true,
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.9",
+		"@earendil-works/pi-ai": "^0.84.2",
+		"@earendil-works/pi-coding-agent": "^0.84.2",
+		"@earendil-works/pi-tui": "^0.84.2",
+		"@types/node": "^26.2.0",
+		"typescript": "^7.0.2",
+		"vitest": "^4.1.11"
+	},
+	"description": "Kimi-backed web_search and web_fetch tools for the pi coding agent (ported from MoonshotAI/kimi-code)",
+	"license": "MIT",
+	"keywords": [
+		"pi-package",
+		"pi",
+		"pi-extension",
+		"kimi",
+		"moonshot",
+		"web-search",
+		"web-fetch"
+	],
+	"scripts": {
+		"typecheck": "tsc -p tsconfig.json",
+		"check": "biome check .",
+		"fix": "biome check --write .",
+		"test": "vitest run",
+		"verify": "npm run typecheck && npm run check && npm test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Fr4nk1inCs/pi-kimi-web-tools.git"
+	},
+	"homepage": "https://github.com/Fr4nk1inCs/pi-kimi-web-tools",
+	"bugs": "https://github.com/Fr4nk1inCs/pi-kimi-web-tools/issues",
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-ai": "*",
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*",
+		"typebox": "*"
+	}
+}
