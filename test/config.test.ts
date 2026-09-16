@@ -1,7 +1,14 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { describe, expect, it } from "vitest";
+import type { AuthResult } from "@earendil-works/pi-ai";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { isKimiModel, normalizeKimiCodeBaseUrl, presentHeaders } from "../src/config.js";
+import {
+	isKimiModel,
+	normalizeKimiCodeBaseUrl,
+	presentHeaders,
+	resolveKimiWebServiceConfig,
+} from "../src/config.js";
 
 describe("normalizeKimiCodeBaseUrl", () => {
 	it("appends /v1 when the URL ends in /coding (pi stores the LLM root)", () => {
@@ -55,5 +62,52 @@ describe("isKimiModel", () => {
 	it("rejects unrelated models and undefined", () => {
 		expect(isKimiModel(model("deepseek", "https://api.deepseek.com"))).toBe(false);
 		expect(isKimiModel(undefined)).toBe(false);
+	});
+});
+
+describe("resolveKimiWebServiceConfig", () => {
+	const ctxWithAuth = (auth: AuthResult | undefined) =>
+		({
+			modelRegistry: { getProviderAuth: async () => auth },
+		}) as unknown as ExtensionContext;
+
+	afterEach(() => {
+		delete process.env.KIMI_API_KEY;
+		delete process.env.MOONSHOT_API_KEY;
+	});
+
+	it("returns undefined when nothing is configured", async () => {
+		expect(await resolveKimiWebServiceConfig(ctxWithAuth(undefined))).toBeUndefined();
+		expect(await resolveKimiWebServiceConfig(ctxWithAuth({ auth: {} }))).toBeUndefined();
+	});
+
+	it("ignores API key environment variables; provider auth is the only source", async () => {
+		process.env.KIMI_API_KEY = "env-key";
+		process.env.MOONSHOT_API_KEY = "env-key";
+		expect(await resolveKimiWebServiceConfig(ctxWithAuth(undefined))).toBeUndefined();
+	});
+
+	it("wraps a stored provider API key as a Bearer header", async () => {
+		const config = await resolveKimiWebServiceConfig(
+			ctxWithAuth({ auth: { apiKey: "stored-key" } }),
+		);
+		expect(config?.headers.Authorization).toBe("Bearer stored-key");
+	});
+
+	it("reuses the OAuth Authorization header from the resolved auth", async () => {
+		const config = await resolveKimiWebServiceConfig(
+			ctxWithAuth({
+				auth: {
+					headers: { Authorization: "Bearer oauth-access-token", "X-Other": "keep" },
+					baseUrl: "https://api.kimi.com/coding",
+				},
+				source: "OAuth",
+			}),
+		);
+		expect(config).toEqual({
+			searchEndpoint: "https://api.kimi.com/coding/v1/search",
+			fetchEndpoint: "https://api.kimi.com/coding/v1/fetch",
+			headers: { Authorization: "Bearer oauth-access-token", "X-Other": "keep" },
+		});
 	});
 });

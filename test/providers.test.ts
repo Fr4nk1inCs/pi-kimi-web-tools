@@ -12,8 +12,7 @@ import {
 const config: KimiWebServiceConfig = {
 	searchEndpoint: "https://api.kimi.com/coding/v1/search",
 	fetchEndpoint: "https://api.kimi.com/coding/v1/fetch",
-	apiKey: "test-key",
-	providerHeaders: { "X-Provider": "yes" },
+	headers: { Authorization: "Bearer test-key", "X-Provider": "yes" },
 };
 
 const PUBLIC_A = "http://93.184.216.34/a";

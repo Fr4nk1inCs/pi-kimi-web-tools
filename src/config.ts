@@ -12,7 +12,7 @@ export function presentHeaders(
 	return present;
 }
 
-const KIMI_PROVIDER_ID = "kimi-coding";
+export const KIMI_PROVIDER_ID = "kimi-coding";
 
 /** kimi-code's DEFAULT_KIMI_CODE_BASE_URL. */
 const DEFAULT_KIMI_CODE_BASE_URL = "https://api.kimi.com/coding/v1";
@@ -20,8 +20,7 @@ const DEFAULT_KIMI_CODE_BASE_URL = "https://api.kimi.com/coding/v1";
 export interface KimiWebServiceConfig {
 	searchEndpoint: string;
 	fetchEndpoint: string;
-	apiKey: string;
-	providerHeaders: Record<string, string>;
+	headers: Record<string, string>;
 }
 
 /** pi stores the provider root as `…/coding`; the web services live under `…/coding/v1`. */
@@ -38,26 +37,27 @@ function resolveKimiCodeBaseUrl(providerBaseUrl: string | undefined): string {
 	return DEFAULT_KIMI_CODE_BASE_URL;
 }
 
+/**
+ * Undefined when the user is not authenticated. OAuth logins surface the
+ * access token as an Authorization header on the resolved provider auth.
+ */
 export async function resolveKimiWebServiceConfig(
 	ctx: ExtensionContext,
-): Promise<KimiWebServiceConfig> {
+): Promise<KimiWebServiceConfig | undefined> {
 	const providerAuth = await ctx.modelRegistry.getProviderAuth(KIMI_PROVIDER_ID);
+	const { Authorization: oauthAuthorization, ...providerHeaders } = presentHeaders(
+		providerAuth?.auth.headers,
+	);
 
-	const envKey = process.env.KIMI_API_KEY?.trim() || process.env.MOONSHOT_API_KEY?.trim();
-	const apiKey = envKey || providerAuth?.auth.apiKey?.trim();
-	if (!apiKey) {
-		throw new Error(
-			"Kimi web tools are not configured: no API key found. " +
-				`Run /login and sign in to "${KIMI_PROVIDER_ID}", or set KIMI_API_KEY.`,
-		);
-	}
+	const apiKey = providerAuth?.auth.apiKey?.trim();
+	const authorization = apiKey ? `Bearer ${apiKey}` : oauthAuthorization;
+	if (!authorization) return undefined;
 
 	const baseUrl = resolveKimiCodeBaseUrl(providerAuth?.auth.baseUrl);
 	return {
 		searchEndpoint: `${baseUrl}/search`,
 		fetchEndpoint: `${baseUrl}/fetch`,
-		apiKey,
-		providerHeaders: presentHeaders(providerAuth?.auth.headers),
+		headers: { ...providerHeaders, Authorization: authorization },
 	};
 }
 
@@ -66,10 +66,4 @@ export function isKimiModel(model: Model<Api> | undefined): boolean {
 	if (model.provider.toLowerCase().includes("kimi")) return true;
 	const baseUrl = model.baseUrl.toLowerCase();
 	return baseUrl.includes("api.kimi.com") || baseUrl.includes("api.moonshot.");
-}
-
-export async function hasKimiCredential(ctx: ExtensionContext): Promise<boolean> {
-	if (process.env.KIMI_API_KEY?.trim() || process.env.MOONSHOT_API_KEY?.trim()) return true;
-	const providerAuth = await ctx.modelRegistry.getProviderAuth(KIMI_PROVIDER_ID);
-	return Boolean(providerAuth?.auth.apiKey?.trim());
 }

@@ -8,7 +8,8 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
-import { hasKimiCredential, isKimiModel, resolveKimiWebServiceConfig } from "./src/config.js";
+import { KIMI_PROVIDER_ID, isKimiModel, resolveKimiWebServiceConfig } from "./src/config.js";
+import type { KimiWebServiceConfig } from "./src/config.js";
 import {
 	classifySearchError,
 	formatSearchResults,
@@ -31,6 +32,17 @@ const WEB_SEARCH_TOOL_NAME = "web_search";
 const WEB_FETCH_TOOL_NAME = "web_fetch";
 const GATED_TOOL_NAMES = new Set([WEB_SEARCH_TOOL_NAME, WEB_FETCH_TOOL_NAME]);
 
+async function requireKimiWebServiceConfig(ctx: ExtensionContext): Promise<KimiWebServiceConfig> {
+	const config = await resolveKimiWebServiceConfig(ctx);
+	if (!config) {
+		throw new Error(
+			"Kimi web tools are not configured: no Kimi credential found. " +
+				`Run /login and sign in to "${KIMI_PROVIDER_ID}" (API key or Kimi Code subscription).`,
+		);
+	}
+	return config;
+}
+
 export default function kimiWebToolsExtension(pi: ExtensionAPI): void {
 	pi.registerTool({
 		name: WEB_SEARCH_TOOL_NAME,
@@ -46,7 +58,7 @@ export default function kimiWebToolsExtension(pi: ExtensionAPI): void {
 		}),
 
 		async execute(toolCallId, params, signal, _onUpdate, ctx) {
-			const config = await resolveKimiWebServiceConfig(ctx);
+			const config = await requireKimiWebServiceConfig(ctx);
 			let results: WebSearchResult[];
 			try {
 				results = await new KimiWebSearchProvider(config).search(params.query, {
@@ -116,7 +128,7 @@ export default function kimiWebToolsExtension(pi: ExtensionAPI): void {
 		}),
 
 		async execute(toolCallId, params, signal, _onUpdate, ctx) {
-			const config = await resolveKimiWebServiceConfig(ctx);
+			const config = await requireKimiWebServiceConfig(ctx);
 			let fetched: UrlFetchResult;
 			try {
 				fetched = await new KimiFetchUrlProvider(config, localFallbackFetcher).fetch(params.url, {
@@ -190,7 +202,8 @@ export default function kimiWebToolsExtension(pi: ExtensionAPI): void {
 
 	async function syncToolAvailability(ctx: ExtensionContext): Promise<void> {
 		const active = pi.getActiveTools();
-		const shouldExpose = isKimiModel(ctx.model) && (await hasKimiCredential(ctx));
+		const shouldExpose =
+			isKimiModel(ctx.model) && (await resolveKimiWebServiceConfig(ctx)) !== undefined;
 		const isExposed = active.includes(WEB_SEARCH_TOOL_NAME);
 
 		if (shouldExpose === isExposed) return;

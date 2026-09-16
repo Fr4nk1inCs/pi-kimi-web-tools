@@ -99,8 +99,7 @@ export class KimiWebSearchProvider {
 		return fetch(this.config.searchEndpoint, {
 			method: "POST",
 			headers: {
-				...this.config.providerHeaders,
-				Authorization: `Bearer ${this.config.apiKey}`,
+				...this.config.headers,
 				"Content-Type": "application/json",
 				...(reqCtx.toolCallId ? { [TOOL_CALL_ID_HEADER]: reqCtx.toolCallId } : {}),
 			},
@@ -135,8 +134,7 @@ export class KimiFetchUrlProvider implements UrlFetcher {
 		const response = await fetch(this.config.fetchEndpoint, {
 			method: "POST",
 			headers: {
-				...this.config.providerHeaders,
-				Authorization: `Bearer ${this.config.apiKey}`,
+				...this.config.headers,
 				Accept: "text/markdown",
 				"Content-Type": "application/json",
 				...(reqCtx.toolCallId ? { [TOOL_CALL_ID_HEADER]: reqCtx.toolCallId } : {}),

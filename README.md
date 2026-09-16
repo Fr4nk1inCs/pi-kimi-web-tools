@@ -16,8 +16,8 @@ Kimi-backed `web_search` and `web_fetch` tools for the
 pi install git:github.com/Fr4nk1inCs/pi-kimi-web-tools
 ```
 
-Requires a Kimi for Coding credential: `/login kimi-coding` in pi, or set
-`KIMI_API_KEY` / `MOONSHOT_API_KEY`.
+Requires a Kimi for Coding credential: `/login kimi-coding` in pi (API key or
+Kimi Code subscription OAuth).
 
 ## Development
 
